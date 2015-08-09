@@ -206,13 +206,14 @@ public class PixivClient {
     }
 
     
-    public void searchByKeyword(final String word , boolean isR18,int praise,int count){
+    public void searchByKeyword(final String word , boolean isR18,int praise,int count,final GetImagesRequest request){
     	if (word == null || "".equals(word.trim())) {
             logger.error("请输入关键词！");
             return;
         }
         logger.info("开始下载收藏数大于" + praise + "的\"" + word + "\"所有图片");
-        searchAndDownload(bulidSearchUrl(word, isR18), praise,count);
+        searchAndDownload(bulidSearchUrl(word, isR18), praise,count,request);
+        mDownloadedImagesCount = 0;
     }
     
     /**
@@ -222,7 +223,7 @@ public class PixivClient {
      * @param praise    收藏数过滤条件
      */
     public void searchByKeyword(String word, boolean isR18, int praise) {
-        searchByKeyword(word,isR18,praise,-1);
+        searchByKeyword(word,isR18,praise,-1,null);
     }
 
     /**
@@ -303,7 +304,7 @@ public class PixivClient {
 	 * @param url   请求的地址
 	 * @param praise    收藏数过滤条件
 	 */
-	private void searchAndDownload(String url, int praise,final int limit) {
+	private void searchAndDownload(String url, int praise,final int limit,final GetImagesRequest request) {
 	    try {
 	        String pageHtml = getPageWithReconnection(url);
 	        if (pageHtml == null) {
@@ -315,7 +316,7 @@ public class PixivClient {
 	        if (ids != null) {
 	            for (String id : ids) {
 	            	if (limit == -1 || limit > mDownloadedImagesCount){
-	            		downloadImage(id);
+	            		downloadImage(id,request);
 	            	}
 	            	else {
 	            		System.out.print("Hit the limit  " + mDownloadedImagesCount);
@@ -327,9 +328,9 @@ public class PixivClient {
 	        String next = parser.parseNextPage(pageHtml);
 	        if (next != null) {
 	            if (url.startsWith(PixivClientConfig.SEARCH_URL)) {
-	                searchAndDownload(PixivClientConfig.SEARCH_URL + next, praise,limit);
+	                searchAndDownload(PixivClientConfig.SEARCH_URL + next, praise,limit,request);
 	            } else if (url.startsWith(PixivClientConfig.DETAIL_URL)) {
-	                searchAndDownload(PixivClientConfig.DETAIL_URL + next, praise,limit);
+	                searchAndDownload(PixivClientConfig.DETAIL_URL + next, praise,limit,request);
 	            }
 	        }
 	    } catch (Exception e) {
@@ -344,7 +345,7 @@ public class PixivClient {
      */
     private void searchAndDownload(String url, int praise) {
         
-    	searchAndDownload(url,praise,-1);
+    	searchAndDownload(url,praise,-1,null);
     }
 
     /**
@@ -360,9 +361,17 @@ public class PixivClient {
      * 下载该页面的图片（可能有多张）
      * @param id    作品id
      */
-    private void downloadImage(String id) {
-        if (cache.contains(id)) {
+    private void downloadImage(String id,final GetImagesRequest request) {
+        if (new File("images/"+id).exists()) {
+        	System.out.println("Gonna use  " + id + "  cache");
+        	
+        	
         	mDownloadedImagesCount++;
+        	if (request != null){
+        		final File imageFile = new File("images/"+id);
+        	
+        		request.onImageLoaded(imageFile, mDownloadedImagesCount);
+        	}
             return;
         }
         String url = buildDetailUrl(id);
@@ -386,7 +395,7 @@ public class PixivClient {
                     image.setReferer(url);
                     image.setChildId("" + i++);
                     image.setUrl(imgUrl);
-                    pool.execute(new ImageDownloadTask(client, image));
+                    pool.execute(new ImageDownloadTask(client, image,request));
                     mDownloadedImagesCount++;
                     try {
                         Thread.sleep(PixivClientConfig.SLEEP_TIME);
@@ -401,7 +410,7 @@ public class PixivClient {
                 image.setId(id);
                 image.setReferer(url);
                 image.setUrl(imgUrl);
-                pool.execute(new ImageDownloadTask(client, image));
+                pool.execute(new ImageDownloadTask(client, image,request));
                 mDownloadedImagesCount++;
                 try {
                     Thread.sleep(PixivClientConfig.SLEEP_TIME);
@@ -455,7 +464,7 @@ public class PixivClient {
             JSONObject json = (JSONObject)JSONValue.parse(pageJson);
             List<String> ids = parser.praseRank(json);
             for (String id : ids) {
-                downloadImage(id);
+                downloadImage(id,null);
             }
             if (json.get("next") != null) {
                 int newPage = Integer.parseInt(String.valueOf(json.get("next")));

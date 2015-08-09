@@ -1,6 +1,7 @@
 package thread;
 
 import bean.Image;
+import client.GetImagesRequest;
 import config.PixivClientConfig;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -41,11 +42,14 @@ public class ImageDownloadTask implements Runnable {
      */
     private Image image;
 
+	private final GetImagesRequest request;
 
-    public ImageDownloadTask(CloseableHttpClient client, Image image) {
+
+    public ImageDownloadTask(CloseableHttpClient client, Image image,final GetImagesRequest request) {
         this.client = client;
         this.image = image;
         this.failure = 0;
+        this.request = request;
     }
 
     @Override
@@ -75,6 +79,8 @@ public class ImageDownloadTask implements Runnable {
             while((bytesRead = response.getEntity().getContent().read(buffer)) != -1){
                 out.write(buffer, 0, bytesRead);
             }
+            
+            request.onImageLoaded(file, -1);
             
             
         } catch (Exception e) {
