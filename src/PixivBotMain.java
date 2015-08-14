@@ -1,7 +1,7 @@
 import java.io.IOException;
 
-import bean.RankingMode;
-import client.PixivClient;
+import com.scienjus.client.PixivParserClient;
+
 import io.github.nixtabyte.telegram.jtelebot.server.impl.DefaultCommandDispatcher;
 import io.github.nixtabyte.telegram.jtelebot.server.impl.DefaultCommandQueue;
 import io.github.nixtabyte.telegram.jtelebot.server.impl.DefaultCommandWatcher;
@@ -29,8 +29,8 @@ public class PixivBotMain {
  
 	}
 	
-	public static PixivClient getPixivInstance(){
-		final PixivClient client = PixivClient.create("images");
+	public static PixivParserClient getPixivInstance(){
+		final PixivParserClient client = new PixivParserClient();
 		client.setUsername(PrivateInfo.PIXIV_USERNAME);
 		client.setPassword(PrivateInfo.PIXIV_PASSWORD);
 		return client;

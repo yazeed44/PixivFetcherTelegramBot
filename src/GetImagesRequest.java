@@ -1,9 +1,6 @@
-package client;
-import java.io.File;
 
-public abstract class GetImagesRequest {
+public class GetImagesRequest {
 
-	
 	private final String keywords;
 	private final int limit;
 	public GetImagesRequest(final String command ){
@@ -31,7 +28,4 @@ public abstract class GetImagesRequest {
 	public String toString() {
 		return "GetImagesRequest [keywords=" + keywords + ", limit=" + limit + "]";
 	}
-	
-	public abstract void onImageLoaded(final File imageFile,final int position);
-	
 }
